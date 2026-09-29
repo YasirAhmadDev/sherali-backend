@@ -15,6 +15,9 @@ const findActiveLocation = async (id) => {
   return location;
 };
 
+// A location may not have coordinates saved (they are optional now)
+const hasCoordinates = (location) => location.lat != null && location.lng != null;
+
 const findAccidentOr404 = async (id) => {
   const accident = await Accident.findOne({ _id: id, isDeleted: false });
   if (!accident) throw new ApiError(404, "Accident not found");
@@ -34,7 +37,9 @@ export const createAccident = asyncHandler(async (req, res) => {
 
   if (data.location) {
     const location = await findActiveLocation(data.location);
-    if (!data.coordinates) data.coordinates = { lat: location.lat, lng: location.lng };
+    if (!data.coordinates && hasCoordinates(location)) {
+      data.coordinates = { lat: location.lat, lng: location.lng };
+    }
   }
 
   // createdBy always comes from the token, never from the form
@@ -81,7 +86,9 @@ export const updateAccident = asyncHandler(async (req, res) => {
   const data = { ...req.body };
   if (data.location) {
     const location = await findActiveLocation(data.location);
-    if (!data.coordinates) data.coordinates = { lat: location.lat, lng: location.lng };
+    if (!data.coordinates && hasCoordinates(location)) {
+      data.coordinates = { lat: location.lat, lng: location.lng };
+    }
   }
 
   accident.set(data); // severity is recalculated automatically on save
